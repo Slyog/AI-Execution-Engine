@@ -2,7 +2,7 @@
 
 LLM proposes. System disposes.
 
-AI Execution Engine generates Python code, executes it in an isolated Docker runtime, and records each attempt as an inspectable trace. Runtime output is the source of truth: exit code, stdout, stderr, timeout state, and status determine whether an attempt succeeded.
+AI Execution Engine runs AI-generated Python code in an isolated Docker runtime and records each attempt as an inspectable trace. Exit code, stdout, stderr, timeout state, and status determine whether an attempt succeeded.
 
 ## What This Is
 
@@ -14,8 +14,8 @@ AI Execution Engine generates Python code, executes it in an isolated Docker run
 
 ## What This Is Not
 
-- Chatbot behavior
-- Code-generation demo behavior
+- A chatbot
+- A code-generation demo
 - LLM-only verification
 
 ## Architecture
@@ -23,7 +23,7 @@ AI Execution Engine generates Python code, executes it in an isolated Docker run
 The model proposes code; the engine determines truth through execution.
 
 ```text
-Client -> /agent-runs -> AgentLayer -> RunManager -> DockerRunner -> TraceManager
+Client → /agent-runs → AgentLayer → RunManager → DockerRunner → TraceManager
 ```
 
 `AgentLayer` generates candidate Python code. `RunManager` sends it to `DockerRunner`. `DockerRunner` executes it in an isolated container. `TraceManager` stores each attempt and result.
@@ -43,6 +43,8 @@ curl -X POST http://localhost:8000/agent-runs \
 ```
 
 ## Design Principles
+
+This system exists because LLM output is unreliable until it has been executed.
 
 - Execution result is the source of truth.
 - Status is never decided by the model.
