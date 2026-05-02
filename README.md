@@ -2,6 +2,9 @@
 
 LLM proposes. System disposes.
 
+This runtime is used by higher-level agent systems such as:
+https://github.com/Slyog/lightwell-runtime-agent
+
 AI Execution Engine runs AI-generated Python code in an isolated Docker runtime and records each attempt as an inspectable trace. Exit code, stdout, stderr, timeout state, and status determine whether an attempt succeeded.
 
 ## What This Is
@@ -60,3 +63,26 @@ cp .env.example .env
 # set OPENAI_API_KEY=your_key and SESSION_DATA_DIR=./data/sessions in .env
 uvicorn api:app --host 0.0.0.0 --port 8000
 ```
+
+## Used By
+
+This runtime is used by an external agent workspace:
+
+https://github.com/Slyog/lightwell-runtime-agent
+
+Lightwell is a separate layer that:
+
+- sends objectives to `/agent-runs`
+- observes real execution results
+- logs and classifies failures
+- provides a UI for interacting with the engine
+
+The separation is intentional:
+
+- This repository focuses on deterministic execution and runtime truth
+- Lightwell focuses on interaction, observation, and higher-level agent behavior
+
+In short:
+
+Execution Engine = runtime + truth layer
+Lightwell = interface + observation layer
