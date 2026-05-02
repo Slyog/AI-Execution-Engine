@@ -39,13 +39,13 @@ Exit code, stdout, stderr, timeout state, and status define whether an attempt s
 The model proposes code. The system determines truth through execution.
 
 ```txt
-Client -> /agent-runs -> AgentLayer -> RunManager -> DockerRunner -> TraceManager
+Client → /agent-runs → AgentLayer → RunManager → DockerRunner → TraceManager
 ```
 
-* **AgentLayer** generates candidate Python code
-* **RunManager** orchestrates execution attempts
-* **DockerRunner** executes code in an isolated container
-* **TraceManager** records every attempt and result
+- AgentLayer generates candidate Python code
+- RunManager orchestrates execution attempts
+- DockerRunner executes code in an isolated container
+- TraceManager records every attempt and result
 
 ---
 
@@ -107,8 +107,8 @@ This system exists because LLM output is unreliable until it has been executed.
 
 This repository provides the runtime layer of a larger system.
 
-* **AI Execution Engine** -> runtime + truth layer
-* **Lightwell Runtime Agent** -> interface + observation layer
+- **AI Execution Engine** → runtime + truth layer
+- **Lightwell Runtime Agent** → interface + observation layer
 
 The separation is intentional:
 execution is isolated from interaction and agent behavior.
@@ -134,19 +134,3 @@ Start the engine:
 ```bash
 uvicorn api:app --host 0.0.0.0 --port 8000
 ```
-
-## Used By
-
-This runtime is used by an external agent workspace:
-
-https://github.com/Slyog/lightwell-runtime-agent
-
-Lightwell is a separate layer that:
-
-- sends objectives to `/agent-runs`
-- observes execution results
-- logs and classifies failures
-- provides a UI layer
-
-Execution Engine = runtime + truth layer
-Lightwell = interface + observation layer
