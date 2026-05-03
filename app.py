@@ -31,6 +31,7 @@ class ExecuteRunRequest(BaseModel):
     """Request body containing Python code to execute."""
 
     code: constr(strip_whitespace=True, min_length=1)
+    allow_network: bool = False
 
 
 class SandboxRunRequest(BaseModel):
@@ -454,10 +455,14 @@ def execute_sandbox_run(request: SandboxRunRequest):
 )
 def execute_run(session_id: UUID, request: ExecuteRunRequest):
     session_id_str = str(session_id)
-    print(f"[POST] /sessions/{session_id_str}/runs session_id={session_id_str}")
+    print(
+        f"[POST] /sessions/{session_id_str}/runs "
+        f"session_id={session_id_str} "
+        f"network={'enabled' if request.allow_network else 'none'}"
+    )
 
     try:
-        run = run_manager.execute_run(session_id_str, request.code)
+        run = run_manager.execute_run(session_id_str, request.code, allow_network=request.allow_network)
         print(f"[POST] /sessions/{session_id_str}/runs session_id={session_id_str} run_id={run['id']}")
 
         status = run["status"]
@@ -481,12 +486,12 @@ def execute_run(session_id: UUID, request: ExecuteRunRequest):
     description="Create an internal tool session, run the provided Python code, and return only the normalized result.",
 )
 def execute_tool(request: ExecuteRunRequest, http_request: Request):
-    print("[POST] /execute")
+    print(f"[POST] /execute network={'enabled' if request.allow_network else 'none'}")
 
     try:
         require_api_key(http_request)
         session = session_manager.create_session("tool")
-        run = run_manager.execute_run(session["id"], request.code)
+        run = run_manager.execute_run(session["id"], request.code, allow_network=request.allow_network)
 
         result = run["result"]
         status = run["status"]
