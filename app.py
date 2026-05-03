@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, constr
 
 from backend.agent_layer import AgentLayer
 from backend.docker_runner import DockerRunner
+from backend.error_classifier import status_from_result
 from backend.run_manager import RunManager
 from backend.session_manager import SessionManager
 from backend.trace_manager import TraceManager
@@ -32,6 +33,13 @@ class ExecuteRunRequest(BaseModel):
     code: constr(strip_whitespace=True, min_length=1)
 
 
+class SandboxRunRequest(BaseModel):
+    """Request body for deterministic sandbox execution."""
+
+    code: constr(strip_whitespace=True, min_length=1)
+    allow_network: bool = False
+
+
 class AgentRunRequest(BaseModel):
     """Request body for an agent-generated execution flow."""
 
@@ -50,6 +58,16 @@ class ExecuteResponse(BaseModel):
     stderr: str
     exit_code: int
     timed_out: bool
+    duration_ms: int
+
+
+class SandboxRunResponse(BaseModel):
+    """Stateless deterministic sandbox execution response."""
+
+    status: str
+    stdout: str
+    stderr: str
+    exit_code: int
     duration_ms: int
 
 
@@ -118,7 +136,8 @@ app = FastAPI(
 )
 
 session_manager = SessionManager(SESSION_DATA_DIR)
-run_manager = RunManager(session_manager, DockerRunner())
+docker_runner = DockerRunner()
+run_manager = RunManager(session_manager, docker_runner)
 trace_manager = TraceManager(session_manager.base_path)
 
 app.add_middleware(
@@ -158,6 +177,16 @@ def execution_error_from_run(run: dict) -> dict:
         "exit_code": result.get("exit_code"),
         "stderr": result.get("stderr", ""),
         "timed_out": result.get("timed_out", False),
+    }
+
+
+def sandbox_response_from_result(result: dict) -> dict:
+    return {
+        "status": status_from_result(result),
+        "stdout": result.get("stdout", ""),
+        "stderr": result.get("stderr", ""),
+        "exit_code": result.get("exit_code", -1),
+        "duration_ms": result.get("duration_ms", 0),
     }
 
 
@@ -391,6 +420,29 @@ def execute_agent_run(request: AgentRunRequest):
         raise HTTPException(status_code=400, detail="invalid_input")
     except Exception:
         raise HTTPException(status_code=500, detail="internal_error")
+
+
+@app.post(
+    "/sandbox-runs",
+    response_model=SandboxRunResponse,
+    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    summary="Execute exact code in sandbox",
+    description="Execute provided Python code directly in the Docker sandbox without LLM generation.",
+)
+def execute_sandbox_run(request: SandboxRunRequest):
+    print(f"[POST] /sandbox-runs network={'enabled' if request.allow_network else 'none'}")
+
+    try:
+        result = docker_runner.run_python(request.code, allow_network=request.allow_network)
+        return sandbox_response_from_result(result)
+    except Exception as exc:
+        return {
+            "status": "internal_error",
+            "stdout": "",
+            "stderr": f"internal error: {exc}",
+            "exit_code": -1,
+            "duration_ms": 0,
+        }
 
 
 @app.post(

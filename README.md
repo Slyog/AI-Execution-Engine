@@ -170,8 +170,15 @@ uvicorn api:app --host 0.0.0.0 --port 8000
 ## Local Sandbox-To-Host API Test
 
 For local API debugging demos, start `adaptive-execution` on port `8880`.
-Then run AI Execution Engine with `allow_network=true` and execute
-`scripts/test_demo_users_local.py` inside the sandbox.
+Then start AI Execution Engine on port `8000` and execute the deterministic
+sandbox run example:
+
+```bash
+python scripts/run_demo_users_sandbox.py
+```
+
+The example posts `scripts/test_demo_users_local.py` to `/sandbox-runs` with
+`allow_network=true`, so the code is executed directly without LLM generation.
 
 The script calls the local demo API through:
 
