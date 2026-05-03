@@ -164,3 +164,23 @@ Start the engine:
 ```bash
 uvicorn api:app --host 0.0.0.0 --port 8000
 ```
+
+---
+
+## Local Sandbox-To-Host API Test
+
+For local API debugging demos, start `adaptive-execution` on port `8880`.
+Then run AI Execution Engine with `allow_network=true` and execute
+`scripts/test_demo_users_local.py` inside the sandbox.
+
+The script calls the local demo API through:
+
+```txt
+http://host.docker.internal:8880/demo/users
+```
+
+Expected status sequence:
+
+```txt
+401 -> 400 -> 200
+```

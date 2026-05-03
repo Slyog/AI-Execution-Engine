@@ -101,6 +101,8 @@ class DockerRunner:
         network_disabled = self.network_disabled and not allow_network
         if network_disabled:
             command.extend(["--network", "none"])
+        else:
+            command.extend(["--add-host", "host.docker.internal:host-gateway"])
 
         command.extend([self.image, "python", "-I", "-c", code])
 
