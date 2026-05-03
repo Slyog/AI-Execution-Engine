@@ -20,12 +20,15 @@ class DockerRunner:
         self.cpu_quota = cpu_quota
         self.network_disabled = network_disabled
 
-    def run_python(self, code: str) -> dict:
+    def run_python(self, code: str, allow_network: bool = False) -> dict:
         started_at = time.monotonic()
         process = None
 
         try:
-            stdout, stderr, timed_out, exit_code, process = self._run_and_capture(code)
+            stdout, stderr, timed_out, exit_code, process = self._run_and_capture(
+                code,
+                allow_network=allow_network,
+            )
             if timed_out:
                 return self._result(
                     stdout="",
@@ -61,7 +64,11 @@ class DockerRunner:
         finally:
             self._cleanup_process(process)
 
-    def _run_and_capture(self, code: str) -> tuple[str, str, bool, int, subprocess.Popen]:
+    def _run_and_capture(
+        self,
+        code: str,
+        allow_network: bool = False,
+    ) -> tuple[str, str, bool, int, subprocess.Popen]:
         command = [
             "docker",
             "run",
@@ -91,12 +98,14 @@ class DockerRunner:
             "PYTHONUNBUFFERED=1",
         ]
 
-        if self.network_disabled:
+        network_disabled = self.network_disabled and not allow_network
+        if network_disabled:
             command.extend(["--network", "none"])
 
         command.extend([self.image, "python", "-I", "-c", code])
 
         print("[DockerRunner] starting docker run")
+        print(f"[DockerRunner] network={'none' if network_disabled else 'enabled'}")
         print(f"[DockerRunner] code={code}")
         print(f"[DockerRunner] cmd={' '.join(command)}")
         start_time = time.monotonic()

@@ -29,8 +29,13 @@ class AgentLayer:
             raise RuntimeError("missing_openai_api_key")
         self.client = OpenAI(api_key=self.api_key)
 
-    def generate_code(self, objective: str, model: str = DEFAULT_MODEL) -> AgentCodeResult:
-        prompt = self._generation_prompt(objective)
+    def generate_code(
+        self,
+        objective: str,
+        model: str = DEFAULT_MODEL,
+        allow_network: bool = False,
+    ) -> AgentCodeResult:
+        prompt = self._generation_prompt(objective, allow_network=allow_network)
         return self._create_code_result(prompt=prompt, model=model)
 
     def repair_code(
@@ -39,8 +44,9 @@ class AgentLayer:
         previous_code: str,
         previous_error: dict[str, Any] | str,
         model: str = DEFAULT_MODEL,
+        allow_network: bool = False,
     ) -> AgentCodeResult:
-        prompt = self._repair_prompt(objective, previous_code, previous_error)
+        prompt = self._repair_prompt(objective, previous_code, previous_error, allow_network=allow_network)
         return self._create_code_result(prompt=prompt, model=model)
 
     def _create_code_result(self, *, prompt: str, model: str) -> AgentCodeResult:
@@ -59,7 +65,7 @@ class AgentLayer:
             tokens_output=self._usage_value(response, "output_tokens"),
         )
 
-    def _generation_prompt(self, objective: str) -> str:
+    def _generation_prompt(self, objective: str, allow_network: bool = False) -> str:
         return "\n".join(
             [
                 "Generate Python code for this request.",
@@ -67,7 +73,7 @@ class AgentLayer:
                 "Sandbox constraints:",
                 "- Python only.",
                 "- Standard library only.",
-                "- No network access.",
+                self._network_constraint(allow_network),
                 "- Do not install dependencies.",
                 "- Do not assume filesystem access unless the request explicitly asks for it.",
                 "- Print the final result to stdout.",
@@ -79,7 +85,13 @@ class AgentLayer:
             ]
         )
 
-    def _repair_prompt(self, objective: str, previous_code: str, previous_error: dict[str, Any] | str) -> str:
+    def _repair_prompt(
+        self,
+        objective: str,
+        previous_code: str,
+        previous_error: dict[str, Any] | str,
+        allow_network: bool = False,
+    ) -> str:
         error = self._normalize_previous_error(previous_error)
         return "\n".join(
             [
@@ -100,7 +112,7 @@ class AgentLayer:
                 "Sandbox constraints:",
                 "- Python only.",
                 "- Standard library only.",
-                "- No network access.",
+                self._network_constraint(allow_network),
                 "- Do not install dependencies.",
                 "- Do not assume filesystem access unless the request explicitly asks for it.",
                 "- Print the final result to stdout.",
@@ -108,6 +120,11 @@ class AgentLayer:
                 "- Do not include markdown fences or explanations.",
             ]
         )
+
+    def _network_constraint(self, allow_network: bool) -> str:
+        if allow_network:
+            return "- Outbound network access is enabled for HTTP/API debugging."
+        return "- No network access."
 
     def _normalize_previous_error(self, previous_error: dict[str, Any] | str) -> dict[str, Any]:
         if isinstance(previous_error, dict):
@@ -143,8 +160,8 @@ class AgentLayer:
         return int(value) if value is not None else None
 
 
-def generate_code(objective: str, model: str = DEFAULT_MODEL) -> AgentCodeResult:
-    return AgentLayer().generate_code(objective, model=model)
+def generate_code(objective: str, model: str = DEFAULT_MODEL, allow_network: bool = False) -> AgentCodeResult:
+    return AgentLayer().generate_code(objective, model=model, allow_network=allow_network)
 
 
 def repair_code(
@@ -152,8 +169,9 @@ def repair_code(
     previous_code: str,
     previous_error: dict[str, Any] | str,
     model: str = DEFAULT_MODEL,
+    allow_network: bool = False,
 ) -> AgentCodeResult:
-    return AgentLayer().repair_code(objective, previous_code, previous_error, model=model)
+    return AgentLayer().repair_code(objective, previous_code, previous_error, model=model, allow_network=allow_network)
 
 
 def strip_markdown_fences(text: str) -> str:

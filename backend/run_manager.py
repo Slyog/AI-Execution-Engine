@@ -12,16 +12,16 @@ class RunManager:
         self.session_manager = session_manager
         self.docker_runner = docker_runner
 
-    def execute_run(self, session_id: str, code: str) -> dict:
+    def execute_run(self, session_id: str, code: str, allow_network: bool = False) -> dict:
         self._validate_session(session_id)
 
         run = self._build_pending_run(code)
         persisted_run = self._persist_pending_run(session_id, run)
         run_id = persisted_run["id"]
-        print(f"[RunManager] run={run_id} status=pending")
+        print(f"[RunManager] run={run_id} status=pending network={'enabled' if allow_network else 'none'}")
 
         try:
-            result = self._execute_code(code)
+            result = self._execute_code(code, allow_network=allow_network)
         except Exception as exc:
             print("UNCAUGHT ERROR:", repr(exc))
             result = {
@@ -71,11 +71,11 @@ class RunManager:
         except FileNotFoundError as exc:
             raise ValueError(f"session_not_found: {session_id}") from exc
 
-    def _execute_code(self, code: str) -> dict:
+    def _execute_code(self, code: str, allow_network: bool = False) -> dict:
         started_at = monotonic()
 
         try:
-            raw_result = self.docker_runner.run_python(code)
+            raw_result = self.docker_runner.run_python(code, allow_network=allow_network)
         except Exception as exc:
             print("UNCAUGHT ERROR:", repr(exc))
             return {

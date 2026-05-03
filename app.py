@@ -39,6 +39,7 @@ class AgentRunRequest(BaseModel):
     objective: constr(strip_whitespace=True, min_length=1)
     max_attempts: int = Field(default=3, ge=1, le=5)
     model: constr(strip_whitespace=True, min_length=1) = "gpt-4o-mini"
+    allow_network: bool = False
 
 
 class ExecuteResponse(BaseModel):
@@ -295,19 +296,25 @@ def execute_agent_run(request: AgentRunRequest):
         final_stdout = ""
         final_stderr = ""
         last_error = ""
+        print(f"[POST] /agent-runs network={'enabled' if request.allow_network else 'none'}")
 
         for attempt in range(1, request.max_attempts + 1):
             if attempt == 1:
-                code_result = agent.generate_code(request.objective, model=request.model)
+                code_result = agent.generate_code(
+                    request.objective,
+                    model=request.model,
+                    allow_network=request.allow_network,
+                )
             else:
                 code_result = agent.repair_code(
                     request.objective,
                     previous_code,
                     previous_error,
                     model=request.model,
+                    allow_network=request.allow_network,
                 )
 
-            run = run_manager.execute_run(session_id, code_result.code)
+            run = run_manager.execute_run(session_id, code_result.code, allow_network=request.allow_network)
             status = run.get("status", "internal_error")
             result = run.get("result") if isinstance(run.get("result"), dict) else {}
 
