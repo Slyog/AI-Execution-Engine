@@ -4,7 +4,7 @@
 
 This runtime is used by higher-level agent systems:
 
-- [Slyog/lightwell-runtime-agent](https://github.com/Slyog/execution-trace-ui)
+- [Slyog/execution-trace-ui](https://github.com/Slyog/execution-trace-ui)
 - [Slyog/adaptive-execution](https://github.com/Slyog/adaptive-execution)
 
 ---
